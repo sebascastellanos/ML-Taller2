@@ -1,4 +1,4 @@
-# heart_disease_models.py
+# heart_disease_pipeline.py
 
 import pandas as pd
 import numpy as np
@@ -11,27 +11,42 @@ from xgboost import XGBClassifier
 from sklearn.model_selection import cross_val_score
 
 
-def load_data():
-    """Carga el dataset Cleveland Heart Disease desde UCI"""
+# -------------------
+# 1️⃣ Fase Pre-Workshop
+# -------------------
+def prepare_data():
+    """Carga y prepara el dataset: X e y listos pero sin entrenar"""
     url = "https://archive.ics.uci.edu/ml/machine-learning-databases/heart-disease/processed.cleveland.data"
     columns = [
         'age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg', 'thalach',
         'exang', 'oldpeak', 'slope', 'ca', 'thal', 'target'
     ]
     df = pd.read_csv(url, names=columns, na_values='?')
-    print("Primeras filas del dataset:")
-    print(df.head())
-    return df
+
+    # Convertir target a binario: 0 = sano, 1 = enfermo
+    df["target"] = (df["target"] > 0).astype(int)
+
+    # Imputación inicial simple (media), como en el pre-workshop
+    imputer = SimpleImputer(strategy="mean")
+    X = imputer.fit_transform(df.drop("target", axis=1))
+    y = df["target"].values
+
+    print("✅ Datos preparados (fase pre-workshop)")
+    print("Shape de X:", X.shape)
+    print("Shape de y:", y.shape)
+
+    return df, X, y
 
 
+# -------------------
+# 2️⃣ Fase Workshop
+# -------------------
 def evaluate_models(df: pd.DataFrame):
     """Evalúa estrategias de imputación y compara RandomForest vs XGBoost"""
 
-    # Separar variables predictoras y target
-    X = df.drop("target", axis=1)
+    X_raw = df.drop("target", axis=1)
     y = df["target"]
 
-    # Definir imputadores
     imputers = {
         "mean": SimpleImputer(strategy="mean"),
         "median": SimpleImputer(strategy="median"),
@@ -41,11 +56,10 @@ def evaluate_models(df: pd.DataFrame):
 
     results = []
 
-    # Probar cada imputación con ambos modelos
     for imp_name, imputer in imputers.items():
         print(f"\nUsando imputación: {imp_name}")
 
-        X_imp = imputer.fit_transform(X)
+        X_imp = imputer.fit_transform(X_raw)
 
         # Random Forest
         rf = RandomForestClassifier(random_state=42)
@@ -68,19 +82,24 @@ def evaluate_models(df: pd.DataFrame):
 
 
 def plot_results(results_df: pd.DataFrame):
-    """Genera un gráfico de barras con los resultados"""
+    """Genera un gráfico comparando imputaciones y modelos"""
     results_df_melted = results_df.melt(
         id_vars="imputer", var_name="Model", value_name="Accuracy"
     )
     sns.barplot(data=results_df_melted, x="imputer", y="Accuracy", hue="Model")
-    plt.title("Comparación de imputaciones y modelos")
+    plt.title("Comparación de imputaciones y modelos (Workshop)")
     plt.show()
 
 
+# -------------------
+# 🚀 Main
+# -------------------
 if __name__ == "__main__":
-    df = load_data()
-    results_df = evaluate_models(df)
+    # Pre-workshop
+    df, X, y = prepare_data()
 
+    # Workshop
+    results_df = evaluate_models(df)
     print("\nResultados finales:\n", results_df)
 
     plot_results(results_df)
