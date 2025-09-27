@@ -81,7 +81,7 @@ def evaluate_imputers_models(X: pd.DataFrame, y: pd.Series) -> pd.DataFrame:
         rf_acc_std = float(np.std(rf_cv))
 
         # XGBoost
-        xgb = XGBClassifier(use_label_encoder=False, eval_metric="logloss", random_state=42)
+        xgb = XGBClassifier(eval_metric="logloss", random_state=42)
         xgb_cv = cross_val_score(xgb, X_imp, y, cv=5, scoring="accuracy")
         xgb_acc_mean = float(np.mean(xgb_cv))
         xgb_acc_std = float(np.std(xgb_cv))

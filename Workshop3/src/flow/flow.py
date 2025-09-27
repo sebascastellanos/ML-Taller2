@@ -3,7 +3,7 @@ from typing import Optional, List
 from prefect import flow
 
 from ..config.settings import DATA_PATH, DATA_URL, COLUMNS, TARGET_NAME, PROJECT_ROOT
-from ..tasks.data_prep import (
+from ..tasks.dataprep   import (
     load_dataframe, split_features_target, binarize_target,
     evaluate_imputers_models, save_results
 )
