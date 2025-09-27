@@ -9,6 +9,8 @@ from sklearn.impute import SimpleImputer, KNNImputer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score
 from xgboost import XGBClassifier
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 
 @task(name="load_dataframe", log_prints=True)
@@ -109,3 +111,42 @@ def save_results(df: pd.DataFrame, out_path: Path) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(out_path, index=False)
     print(f"Resultados guardados en: {out_path}")
+
+
+@task(name="plot_results", log_prints=True)
+def plot_results(results_df: pd.DataFrame) -> None:
+    """
+    Grafica EXACTAMENTE lo que generas en evaluate_imputers_models:
+    columnas: imputer, RF_acc_mean, RF_acc_std, XGB_acc_mean, XGB_acc_std
+    """
+    logger = get_run_logger()
+    required = ["imputer", "RF_acc_mean", "RF_acc_std", "XGB_acc_mean", "XGB_acc_std"]
+    missing = [c for c in required if c not in results_df.columns]
+    if missing:
+        raise ValueError(f"Faltan columnas en results_df: {missing}")
+
+    df = results_df.copy()
+    imps = df["imputer"].tolist()
+    rf_means = df["RF_acc_mean"].values
+    rf_stds  = df["RF_acc_std"].values
+    xgb_means = df["XGB_acc_mean"].values
+    xgb_stds  = df["XGB_acc_std"].values
+
+    x = np.arange(len(imps))
+    width = 0.35
+
+    fig, ax = plt.subplots(figsize=(9, 4))
+    ax.bar(x - width/2, rf_means, width, yerr=rf_stds, capsize=4, label="RandomForest")
+    ax.bar(x + width/2, xgb_means, width, yerr=xgb_stds, capsize=4, label="XGBoost")
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(imps)
+    ax.set_ylabel("Accuracy (CV mean)")
+    ax.set_title("Accuracy por imputador (con desviación estándar)")
+    ax.set_ylim(0, 1)  # asumiendo accuracies normalizados
+    ax.legend()
+
+    plt.tight_layout()
+    plt.show()
+
+    logger.info("Gráfico generado a partir de RF_acc_mean/std y XGB_acc_mean/std.")
